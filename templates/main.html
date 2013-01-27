@@ -35,6 +35,18 @@
         padding: 14px 24px;
       }
     </style>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+      {% autoescape false %}
+      google.load('visualization', '1.0', {'packages':['corechart']});
+      google.setOnLoadCallback(drawChart);
+      function drawChart() {
+        var data = new google.visualization.DataTable({{ data_table }});
+        var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+        chart.draw(data, {'width':700, 'height':300});
+      }
+      {% endautoescape %}
+    </script>
   </head>
 
   <body>
@@ -46,7 +58,8 @@
         <p class="small"><em>{{ date }}</em></p>
       </div>
 
-      <hr>
+      <div id="chart_div"></div>
+      <hr />
 
       <div class="footer">
         <p>&copy; Wojciech Sznapka 2013</p>
