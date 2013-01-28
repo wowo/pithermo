@@ -29,8 +29,10 @@ def hello():
     return render_template('main.html', **vars)
 
 def collect():
+    temp = os.popen('cat /sys/bus/w1/devices/28-*/w1_slave | tail -n1 | cut -f2 -d= | awk \'{print $1/1000}\'').read()
+
     return {
-      'temperature': os.popen('cat /sys/bus/w1/devices/28-*/w1_slave | tail -n1 | cut -f2 -d= | awk \'{print $1/1000}\'').read(),
+      'temperature': round(float(temp), 1),
       'date': datetime.now(pytz.timezone('Europe/Warsaw')).strftime(DATE_FORMAT)
     }
 
@@ -38,4 +40,4 @@ if __name__ == "__main__" and len(sys.argv) == 1:
     app.run(host='0.0.0.0', debug=True)
 else:
     sensor = collect()
-    print "%s\t%s" % (sensor['date'], sensor['temperature'].rstrip('\r\n'))
+    print "%s\t%s" % (sensor['date'], sensor['temperature'])
