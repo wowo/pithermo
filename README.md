@@ -17,3 +17,8 @@ Technology
 * Flask Python web microframework
 * Twitter Bootstrap 2.2
 * Google Charts API
+
+Example
+-------
+
+![example](http://pbs.twimg.com/media/BBpdYxpCAAAV9g_.png:large)
