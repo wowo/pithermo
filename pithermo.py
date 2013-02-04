@@ -1,31 +1,33 @@
 #!/usr/bin/python
 
+from datetime import datetime, timedelta
+from flask import Flask
+from flask import render_template
+from pymongo import MongoClient
+import appconfig
 import csv
 import gviz_api
 import os
 import pytz
 import sys
-import appconfig
-from datetime import datetime
-from flask import Flask
-from flask import render_template
-from pymongo import MongoClient
 
 DATE_FORMAT='%H:%M %Y-%m-%d'
 
 app = Flask(__name__)
 
 
-@app.route("/")
+@app.route('/')
 def hello():
-    data = [temperature for temperature in getCollection().find()]
+    return render_template('main.html', **collect())
+
+@app.route('/history')
+def history():
+    start = datetime.now() - timedelta(days=2)
+    data = [temperature for temperature in getCollection().find({'date': {'$gte': start}})]
     data_table = gviz_api.DataTable({'date': ('datetime', 'Czas'), 'temperature': ('number', 'Temperatura')})
     data_table.LoadData(data)
-    
-    current = collect()
-    current['data_table'] = data_table.ToJSon()
 
-    return render_template('main.html', **current)
+    return data_table.ToJSon()
 
 def collect():
     temp = os.popen('cat /sys/bus/w1/devices/28-*/w1_slave | tail -n1 | cut -f2 -d= | awk \'{print $1/1000}\'').read()
