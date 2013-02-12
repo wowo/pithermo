@@ -34,7 +34,7 @@
             {% autoescape false %}
             google.load('visualization', '1.0', {'packages':['corechart']});
             google.setOnLoadCallback(function () {
-                new SAPO.Communication.Ajax('history', {
+                new SAPO.Communication.Ajax('/pithermo/history', {
                     method: 'get',
                     onSuccess: function(resopnseObject, responseData) {
                                         var data = new google.visualization.DataTable(responseData);
