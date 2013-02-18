@@ -5,7 +5,6 @@ from flask import Flask
 from flask import render_template
 from pymongo import MongoClient
 import csv
-import gviz_api
 import yaml
 import json
 import os
