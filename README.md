@@ -6,16 +6,16 @@ Raspberry Pi Temperature fetching application using Python Flask microframework
 Features
 --------
 
-* Fetches current temperature from Dallas digital thermometer connected via Onewire (through GPIO)
-* Collects temperature in TSV format, which can be easily stored in a file
-* Shows temperature graph
+* Fetches current temperatures from Dallas digital thermometers connected via 1wire (through GPIO)
+* Collects temperatures and stores them in MongoDB database
+* Shows temperatures graph (multiple series)
 
 Technology
 ----------
 
-* Dallas DS1820 thermometer connected via Onewire to GPIO (uses w1-gpio and w1-therm modules)
+* Dallas DS1820 thermometers connected via Onewire to GPIO (uses w1-gpio and w1-therm modules)
 * Flask Python web microframework
-* Twitter Bootstrap 2.2
+* INK Framework (frontend)
 * Google Charts API
 
 Example
