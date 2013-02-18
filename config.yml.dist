@@ -1,14 +1,14 @@
 sensors:
     '28-0000047632af':
         id: living-room
-        name: Pokój dzienny
+        name: 'Pokój dzienny'
     '28-00000476ee01':
         id: outdoor
         name: 'Na zewnątrz'
 database:
-    host: 'linus.mongohq.com'
+    host: 'host'
     port: 10080
-    user: 'pithermo'
-    pass: 'pi2013'
+    user: 'user'
+    pass: 'pass'
     collection: 'pithermo'
 
