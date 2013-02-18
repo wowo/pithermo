@@ -36,11 +36,13 @@
             google.setOnLoadCallback(function () {
                 new SAPO.Communication.Ajax('/pithermo/history', {
                     method: 'get',
-                    onSuccess: function(resopnseObject, responseData) {
-                                        var data = new google.visualization.DataTable(responseData);
-                                        var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
-                                        chart.draw(data, {width:700, height: 300, backgroundColor: '#f7f7f7',
-                                            legend: {position: 'bottom'}});
+                    evalJS: 'force',
+                    onSuccess: function(data) {
+                        console.log(data.responseJSON);
+                        var data = new google.visualization.arrayToDataTable(data.responseJSON);
+                        var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+                        chart.draw(data, {width:700, height: 300, backgroundColor: '#f7f7f7',
+                            legend: {position: 'bottom'}});
                     }
                 })
             })
@@ -53,8 +55,9 @@
         <header class="ink-container">
             <div class="ink-vspace">
                 <h1>PiThermo  </h1>
-                <p>Aktualna temperatura: <strong>{{ temperature }} °C</strong></p>
-                <p><em>{{ date_literal }}</em></p>
+                {% for address in sensors %}
+                    <p>{{ sensors[address].name }}: <strong>{{ sensors[address].temperature }} °C</strong></p>
+                {% endfor %}
             </div>
         </header>
 
