@@ -1,5 +1,0 @@
-MONGO_HOST = 'linus.mongohq.com'
-MONGO_PORT = 10080
-MONGO_USER = 'your_user'
-MONGO_PASS = 'secret_pass'
-MONGO_COLLECTION = 'pithermo'
