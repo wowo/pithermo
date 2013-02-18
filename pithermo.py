@@ -1,14 +1,14 @@
 #!/usr/bin/python
 
 from datetime import datetime, timedelta
-from flask import Flask
-from flask import render_template
+from flask import Flask, render_template, request
 from pymongo import MongoClient
 import csv
 import yaml
 import json
 import os
 import pytz
+import re
 import sys
 
 DATE_FORMAT='%H:%M %Y-%m-%d'
@@ -19,6 +19,11 @@ app = Flask(__name__)
 @app.route('/')
 def hello():
     return render_template('main.html', sensors=collect())
+
+@app.route('/chart/<address>')
+def chart(address):
+    sensors = yaml.load(file(os.path.dirname(__file__) + '/config.yml'))['sensors']
+    return render_template('chart.html', address=address, name=sensors[address]['name'])
 
 @app.route('/history')
 def history():
@@ -31,9 +36,12 @@ def history():
             continue
 
         documents.append(temperature)
-        for sensor in temperature['sensors']:
-            if temperature['sensors'][sensor]['id'] not in headers:
-                headers[sensor] = temperature['sensors'][sensor]['name']
+        if request.args.get('address'):
+            headers[request.args.get('address')] = temperature['sensors'][request.args.get('address')]['name']
+        else:
+            for sensor in temperature['sensors']:
+                if temperature['sensors'][sensor]['id'] not in headers:
+                    headers[sensor] = temperature['sensors'][sensor]['name']
 
     row = []
     for key in headers:
@@ -56,9 +64,18 @@ def collect():
     command = 'cat /sys/bus/w1/devices/%s/w1_slave | tail -n1 | cut -f2 -d= | awk \'{print $1/1000}\''
     for address in sensors:
         if os.path.exists('/sys/bus/w1/devices/' + address):
-            sensors[address]['temperature'] = round(float(os.popen(command % address).read()), 1)
+            temperature = None
+            while temperature is None:
+                sensor = open('/sys/bus/w1/devices/' + address + '/w1_slave', 'r').read().replace("\n", " ")
+                if re.search(r"crc=.* YES", sensor):
+                    match = re.search(r"t=([0-9\-]+)", sensor)
+                    temperature = round(float(match.group(1)) / 1000, 1)
+            sensors[address]['temperature'] = temperature
 
     return sensors
+
+def output():
+    print yaml.dump(collect(), default_flow_style=False)
 
 def store():
     getCollection().insert({
@@ -95,7 +112,10 @@ def migrate():
     for date in temps:
         db.insert(temps[date])
 
-if __name__ == "__main__" and len(sys.argv) == 1:
-    app.run(host='0.0.0.0', debug=True)
-else:
-    store()
+if __name__ != 'pithermo': # wsgi
+    if __name__ == "__main__" and len(sys.argv) == 1:
+        app.run(host='0.0.0.0', debug=True)
+    elif sys.argv[1] == '--output':
+        output()
+    else:
+        store()

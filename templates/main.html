@@ -34,9 +34,10 @@
             {% autoescape false %}
             google.load('visualization', '1.0', {'packages':['corechart']});
             google.setOnLoadCallback(function () {
-                new SAPO.Communication.Ajax('/pithermo/history', {
+                new SAPO.Communication.Ajax('{{ url_for('history') }}', {
                     method: 'get',
                     evalJS: 'force',
+                    parameters: '{% block parameters %}{% endblock %}',
                     onSuccess: function(data) {
                         console.log(data.responseJSON);
                         var data = new google.visualization.arrayToDataTable(data.responseJSON);
@@ -54,10 +55,12 @@
     <body>
         <header class="ink-container">
             <div class="ink-vspace">
-                <h1>PiThermo  </h1>
-                {% for address in sensors %}
-                    <p>{{ sensors[address].name }}: <strong>{{ sensors[address].temperature }} °C</strong></p>
-                {% endfor %}
+                <h1>PiThermo</h1>
+                {% block current %}
+                    {% for address in sensors %}
+                    <p>{{ sensors[address].name }}: <strong>{{ sensors[address].temperature }} °C</strong> <a href="{{ url_for('chart', sensor=address) }}"><i class="icon-bar-chart icon-large"></i></a></p>
+                    {% endfor %}
+                {% endblock %}
             </div>
         </header>
 
