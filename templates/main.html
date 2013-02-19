@@ -56,12 +56,13 @@
                           }
                         }
                         for (name in sensors) {
-                          SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.min')[0].innerText = 
-                              Math.min.apply(null, sensors[name]);
-                          SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.max')[0].innerText = 
-                              Math.max.apply(null, sensors[name]);
-                          SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.avg')[0].innerText = 
-                              Math.round((sensors[name].reduce(function(a, b) { return a + b }) / sensors[name].length) * 10) / 10;
+                            var min = Math.min.apply(null, sensors[name]);
+                            var max = Math.max.apply(null, sensors[name]);
+                            var avg = Math.round((sensors[name].reduce(function(a, b) { return a + b }) / sensors[name].length) * 10) / 10;
+
+                            SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.min')[0].innerText = min + ' °C';
+                            SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.max')[0].innerText = max + ' °C';
+                            SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.avg')[0].innerText = avg + ' °C';
                         }
                     }
                 })
