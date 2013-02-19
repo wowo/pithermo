@@ -58,7 +58,7 @@
                 <h1>PiThermo</h1>
                 {% block current %}
                     {% for address in sensors %}
-                    <p>{{ sensors[address].name }}: <strong>{{ sensors[address].temperature }} °C</strong> <a href="{{ url_for('chart', sensor=address) }}"><i class="icon-bar-chart icon-large"></i></a></p>
+                    <p>{{ sensors[address].name }}: <strong>{{ sensors[address].temperature }} °C</strong> <a href="{{ url_for('chart', address=address) }}"><i class="icon-bar-chart icon-large"></i></a></p>
                     {% endfor %}
                 {% endblock %}
             </div>
