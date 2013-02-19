@@ -39,7 +39,6 @@
                     evalJS: 'force',
                     parameters: '{% block parameters %}{% endblock %}',
                     onSuccess: function(data) {
-                        console.log(data.responseJSON);
                         var data = new google.visualization.arrayToDataTable(data.responseJSON);
                         var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
                         chart.draw(data, {width:700, height: 300, backgroundColor: '#f7f7f7',
@@ -58,7 +57,10 @@
                 <h1>PiThermo</h1>
                 {% block current %}
                     {% for address in sensors %}
-                    <p>{{ sensors[address].name }}: <strong>{{ sensors[address].temperature }} °C</strong> <a href="{{ url_for('chart', address=address) }}"><i class="icon-bar-chart icon-large"></i></a></p>
+                    <p>{{ sensors[address].name }}: 
+                        <strong>{% if sensors[address].temperature %}{{ sensors[address].temperature }} °C{% else %}n/a{% endif %}</strong> 
+                        <a href="{{ url_for('chart', address=address) }}"><i class="icon-bar-chart icon-large"></i></a>
+                    </p>
                     {% endfor %}
                 {% endblock %}
             </div>

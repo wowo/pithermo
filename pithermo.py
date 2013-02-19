@@ -22,7 +22,7 @@ def hello():
 
 @app.route('/chart/<address>')
 def chart(address):
-    sensors = yaml.load(file(os.path.dirname(__file__) + '/config.yml'))['sensors']
+    sensors = getConfig()['sensors']
     return render_template('chart.html', address=address, name=sensors[address]['name'])
 
 @app.route('/history')
@@ -60,7 +60,7 @@ def history():
     return json.dumps(data)
 
 def collect():
-    sensors = yaml.load(file(os.path.dirname(__file__) + '/config.yml'))['sensors']
+    sensors = getConfig()['sensors']
     command = 'cat /sys/bus/w1/devices/%s/w1_slave | tail -n1 | cut -f2 -d= | awk \'{print $1/1000}\''
     for address in sensors:
         if os.path.exists('/sys/bus/w1/devices/' + address):
@@ -84,7 +84,7 @@ def store():
     })
 
 def getCollection():
-    config = yaml.load(file(os.path.dirname(__file__) + '/config.yml'))['database']
+    config = getConfig()['database']
 
     conn = MongoClient(config['host'], config['port'])
     db = conn[config['collection']]
@@ -111,6 +111,9 @@ def migrate():
 
     for date in temps:
         db.insert(temps[date])
+
+def getConfig():
+  return yaml.load(file(os.path.dirname(os.path.realpath(__file__)) + '/config.yml'))
 
 if __name__ != 'pithermo': # wsgi
     if __name__ == "__main__" and len(sys.argv) == 1:
