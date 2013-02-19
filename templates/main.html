@@ -27,7 +27,7 @@
             
         <script type="text/javascript" src="http://js.sapo.pt/SAPO/0.1/"></script>
         <script type="text/javascript">
-            SAPO.require(['http://js.sapo.pt/SAPO/Communication/Ajax/2.1/'])
+            SAPO.require(['http://js.sapo.pt/SAPO/Communication/Ajax/2.1/', 'http://js.sapo.pt/SAPO/Dom/Selector/1.1/'])
         </script>
         <script type="text/javascript" src="https://www.google.com/jsapi"></script>
         <script type="text/javascript">
@@ -39,10 +39,30 @@
                     evalJS: 'force',
                     parameters: '{% block parameters %}{% endblock %}',
                     onSuccess: function(data) {
-                        var data = new google.visualization.arrayToDataTable(data.responseJSON);
+                        var json = data.responseJSON;
+                        var data = new google.visualization.arrayToDataTable(json);
                         var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
-                        chart.draw(data, {width:700, height: 300, backgroundColor: '#f7f7f7',
+                        chart.draw(data, {width:'100%', height: 400, backgroundColor: '#f7f7f7',
                             legend: {position: 'bottom'}});
+
+                        var sensors = {}
+                        for (var i = 0; i < json.length; i++) {
+                          for (var k = 1; k < json[i].length; k++) {
+                            if (0 == i) {
+                              sensors[json[0][k]] = [];
+                            } else {
+                              sensors[json[0][k]].push(json[i][k])
+                            }
+                          }
+                        }
+                        for (name in sensors) {
+                          SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.min')[0].innerText = 
+                              Math.min.apply(null, sensors[name]);
+                          SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.max')[0].innerText = 
+                              Math.max.apply(null, sensors[name]);
+                          SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.avg')[0].innerText = 
+                              Math.round((sensors[name].reduce(function(a, b) { return a + b }) / sensors[name].length) * 10) / 10;
+                        }
                     }
                 })
             })
@@ -56,12 +76,34 @@
             <div class="ink-vspace">
                 <h1>PiThermo</h1>
                 {% block current %}
-                    {% for address in sensors %}
-                    <p>{{ sensors[address].name }}: 
-                        <strong>{% if sensors[address].temperature %}{{ sensors[address].temperature }} °C{% else %}n/a{% endif %}</strong> 
-                        <a href="{{ url_for('chart', address=address) }}"><i class="icon-bar-chart icon-large"></i></a>
-                    </p>
-                    {% endfor %}
+                      <table class="ink-table ink-bordered ink-hover ink-zebra">
+                          <thead>
+                              <tr>
+                                  <th>Sensor</th>
+                                  <th>Bieżąca</th>
+                                  <th>Średnia</th>
+                                  <th>Min</th>
+                                  <th>Max</th>
+                                  <th>Wykres</th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                              {% for address in sensors %}
+                                  <tr>
+                                      <td>{{ sensors[address].name }}</td>
+                                      <td>{% if sensors[address].temperature %}{{ sensors[address].temperature }} °C{% else %}n/a{% endif %}</td>
+                                      <td class="avg"></td>
+                                      <td class="min"></td>
+                                      <td class="max"></td>
+                                      <td>
+                                          <a href="{{ url_for('chart', address=address) }}">
+                                              <i class="icon-bar-chart icon-large"></i>
+                                          </a>
+                                      </td>
+                                  </tr>
+                              {% endfor %}
+                          </tbody>
+                      </table>
                 {% endblock %}
             </div>
         </header>
