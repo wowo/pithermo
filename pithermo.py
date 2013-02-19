@@ -50,7 +50,7 @@ def history():
     data.append(row)
 
     for document in documents:
-        row = [document['date'].strftime('%Y-%m-%d %H:%M')]
+        row = [document['date'].strftime('%m-%d %H:%M')]
         for key in headers:
             if key != 'date':
                 row.append(document['sensors'][key]['temperature'])
