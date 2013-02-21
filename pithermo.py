@@ -20,14 +20,9 @@ app = Flask(__name__)
 def hello():
     return render_template('main.html', sensors=collect())
 
-@app.route('/chart/<address>')
-def chart(address):
-    sensors = getConfig()['sensors']
-    return render_template('chart.html', address=address, name=sensors[address]['name'])
-
 @app.route('/history')
 def history():
-    start = datetime.now() - timedelta(days=2)
+    start = datetime.now() - timedelta(days=request.args.get('days', 2))
     data = []
     documents = []
     headers = {'date': 'Data'}
@@ -36,12 +31,9 @@ def history():
             continue
 
         documents.append(temperature)
-        if request.args.get('address'):
-            headers[request.args.get('address')] = temperature['sensors'][request.args.get('address')]['name']
-        else:
-            for sensor in temperature['sensors']:
-                if temperature['sensors'][sensor]['id'] not in headers:
-                    headers[sensor] = temperature['sensors'][sensor]['name']
+        for address in temperature['sensors']:
+            if address not in headers and address in request.args.getlist('address[]'):
+                headers[address] = temperature['sensors'][address]['name']
 
     row = []
     for key in headers:
@@ -117,7 +109,8 @@ def getConfig():
 
 if __name__ != 'pithermo': # wsgi
     if __name__ == "__main__" and len(sys.argv) == 1:
-        app.run(host='0.0.0.0', debug=True)
+        #app.run(host='0.0.0.0', debug=True)
+        app.run(host='91.227.39.112', port=8000, debug=True)
     elif sys.argv[1] == '--output':
         output()
     else:

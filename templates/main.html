@@ -26,18 +26,31 @@
         <link rel="stylesheet" href="http://css.ink.sapo.pt/v1/css/ink.css">
             
         <script type="text/javascript" src="http://js.sapo.pt/SAPO/0.1/"></script>
-        <script type="text/javascript">
-            SAPO.require(['http://js.sapo.pt/SAPO/Communication/Ajax/2.1/', 'http://js.sapo.pt/SAPO/Dom/Selector/1.1/'])
-        </script>
+        <script type="text/javascript" src="http://js.sapo.pt/SAPO/Dom/Loaded/1.1/"></script>
+        <script type="text/javascript" src="http://js.sapo.pt/SAPO/Dom/Event/0.1/"></script>
         <script type="text/javascript" src="https://www.google.com/jsapi"></script>
         <script type="text/javascript">
             {% autoescape false %}
             google.load('visualization', '1.0', {'packages':['corechart']});
-            google.setOnLoadCallback(function () {
-                new SAPO.Communication.Ajax('{{ url_for('history') }}', {
+            SAPO.require(['http://js.sapo.pt/SAPO/Communication/Ajax/2.1/',
+                'http://js.sapo.pt/SAPO/Dom/Selector/1.1/'
+            ]);
+
+            function drawChart(url) 
+            {
+                var sensors = '';
+                var checkboxes = SAPO.Dom.Selector.select('tbody input[type="checkbox"]:checked');
+                if (checkboxes.length == 0) {
+                    return false;
+                }
+                for (var i = 0; i < checkboxes.length; i++) {
+                    sensors += 'address[]=' + checkboxes[i].value + '&';
+                }
+                SAPO.Dom.Selector.select('#chart_div')[0].innerHTML = '<img alt="loader" src="/pithermo/static/loader.gif"/>';
+                new SAPO.Communication.Ajax(url, {
                     method: 'get',
                     evalJS: 'force',
-                    parameters: '{% block parameters %}{% endblock %}',
+                    parameters: sensors,
                     onSuccess: function(data) {
                         var json = data.responseJSON;
                         var data = new google.visualization.arrayToDataTable(json);
@@ -66,8 +79,19 @@
                         }
                     }
                 })
-            })
+            }
+            google.setOnLoadCallback(function () {
+                drawChart('{{ url_for('history') }}');
+            });
 
+            SAPO.Dom.Loaded.run(function () {
+                var checkboxes = SAPO.Dom.Selector.select('input[type="checkbox"]');
+                for (var i = 0; i < checkboxes.length; i++) {
+                    SAPO.Dom.Event.observe(checkboxes[i], 'change', function(e) { 
+                        drawChart('{{ url_for('history') }}');
+                    });
+                }
+            });
             {% endautoescape %}
         </script>
     </head>
@@ -81,26 +105,22 @@
                           <thead>
                               <tr>
                                   <th>Sensor</th>
+                                  <th></th>
                                   <th>Bieżąca</th>
                                   <th>Średnia</th>
                                   <th>Min</th>
                                   <th>Max</th>
-                                  <th>Wykres</th>
                               </tr>
                           </thead>
                           <tbody>
                               {% for address in sensors %}
                                   <tr>
                                       <td>{{ sensors[address].name }}</td>
+                                      <td><input type="checkbox" value="{{ address }}" checked="checked" /></td>
                                       <td>{% if sensors[address].temperature %}{{ sensors[address].temperature }} °C{% else %}n/a{% endif %}</td>
                                       <td class="avg"></td>
                                       <td class="min"></td>
                                       <td class="max"></td>
-                                      <td>
-                                          <a href="{{ url_for('chart', address=address) }}">
-                                              <i class="icon-bar-chart icon-large"></i>
-                                          </a>
-                                      </td>
                                   </tr>
                               {% endfor %}
                           </tbody>
@@ -110,7 +130,7 @@
         </header>
 
         <div class="ink-container ink-vspace">
-            <div id="chart_div"><img alt="loader" src="/pithermo/static/loader.gif"/></div>
+            <div id="chart_div"></div>
         </div>
 
         <footer>
