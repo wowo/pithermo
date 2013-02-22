@@ -18,21 +18,21 @@ app = Flask(__name__)
 
 @app.route('/')
 def hello():
-    return render_template('main.html', sensors=collect())
+    return render_template('main.html', sensors=collect(), days=request.args.get('days',2))
 
 @app.route('/history')
 def history():
-    start = datetime.now() - timedelta(days=request.args.get('days', 2))
+    start = datetime.now() - timedelta(days=int(request.args.get('days', 2)))
     data = []
     documents = []
     headers = {'date': 'Data'}
-    for temperature in getCollection().find({'date': {'$gte': start}}):
+    for temperature in getCollection().find({'date': {'$gte': start}}).sort('date', 1):
         if 'sensors' not in temperature:
             continue
 
         documents.append(temperature)
         for address in temperature['sensors']:
-            if address not in headers and address in request.args.getlist('address[]'):
+            if address not in headers and address in request.args.getlist('address[]') and 'name' in temperature['sensors'][address]:
                 headers[address] = temperature['sensors'][address]['name']
 
     row = []
@@ -45,7 +45,7 @@ def history():
         row = [document['date'].strftime('%m-%d %H:%M')]
         for key in headers:
             if key != 'date':
-                row.append(document['sensors'][key]['temperature'])
+                row.append(document['sensors'][key]['temperature'] if key in document['sensors'] else None)
 
         data.append(row)
 
@@ -89,14 +89,13 @@ def migrate():
     addresses = {'outdoor': '28-00000476ee01', 'living-room': '28-0000047632af'}
     db = getCollection()
     temps = {}
-    for document in db.find({'date': {'$gt': datetime(2013, 2, 17, 18, 00)}, 'id': {'$exists': True}}):
+    for document in db.find({'date': {'$lte': datetime(2013, 2, 17, 18, 00)}, 'sensor': {'$exists': True}, 'sensors': {'$exists': False}}):
         if document['date'] not in temps:
             temps[document['date']] = {'date': document['date'], 'sensors': {}}
 
         print document
-        temps[document['date']]['sensors'][addresses[document['id']]] = {
-            'id': document['id'],
-            'name': document['name'],
+        temps[document['date']]['sensors'][addresses[document['sensor']]] = {
+            'id': document['sensor'],
             'temperature': document['temperature']
         }
         db.remove(document)
@@ -111,6 +110,8 @@ if __name__ != 'pithermo': # wsgi
     if __name__ == "__main__" and len(sys.argv) == 1:
         #app.run(host='0.0.0.0', debug=True)
         app.run(host='91.227.39.112', port=8000, debug=True)
+    elif sys.argv[1] == '--migrate':
+        migrate()
     elif sys.argv[1] == '--output':
         output()
     else:

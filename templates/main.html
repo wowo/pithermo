@@ -28,15 +28,14 @@
         <script type="text/javascript" src="http://js.sapo.pt/SAPO/0.1/"></script>
         <script type="text/javascript" src="http://js.sapo.pt/SAPO/Dom/Loaded/1.1/"></script>
         <script type="text/javascript" src="http://js.sapo.pt/SAPO/Dom/Event/0.1/"></script>
+        <script type="text/javascript" src="http://js.sapo.pt/SAPO/Communication/Ajax/2.1/"></script>
+        <script type="text/javascript" src="http://js.sapo.pt/SAPO/Dom/Selector/1.1/"></script>
         <script type="text/javascript" src="https://www.google.com/jsapi"></script>
         <script type="text/javascript">
             {% autoescape false %}
             google.load('visualization', '1.0', {'packages':['corechart']});
-            SAPO.require(['http://js.sapo.pt/SAPO/Communication/Ajax/2.1/',
-                'http://js.sapo.pt/SAPO/Dom/Selector/1.1/'
-            ]);
 
-            function drawChart(url) 
+            function drawChart() 
             {
                 var sensors = '';
                 var checkboxes = SAPO.Dom.Selector.select('tbody input[type="checkbox"]:checked');
@@ -47,10 +46,10 @@
                     sensors += 'address[]=' + checkboxes[i].value + '&';
                 }
                 SAPO.Dom.Selector.select('#chart_div')[0].innerHTML = '<img alt="loader" src="/pithermo/static/loader.gif"/>';
-                new SAPO.Communication.Ajax(url, {
+                new SAPO.Communication.Ajax('{{ url_for('history') }}', {
                     method: 'get',
                     evalJS: 'force',
-                    parameters: sensors,
+                    parameters: sensors + 'days=' + SAPO.Dom.Selector.select('#chart-days')[0].value,
                     onSuccess: function(data) {
                         var json = data.responseJSON;
                         var data = new google.visualization.arrayToDataTable(json);
@@ -81,16 +80,25 @@
                 })
             }
             google.setOnLoadCallback(function () {
-                drawChart('{{ url_for('history') }}');
+                drawChart();
             });
 
             SAPO.Dom.Loaded.run(function () {
                 var checkboxes = SAPO.Dom.Selector.select('input[type="checkbox"]');
                 for (var i = 0; i < checkboxes.length; i++) {
                     SAPO.Dom.Event.observe(checkboxes[i], 'change', function(e) { 
-                        drawChart('{{ url_for('history') }}');
+                        drawChart();
                     });
                 }
+                SAPO.Dom.Event.observe(SAPO.Dom.Selector.select('#chart-days-button')[0], 'click', function(e) { 
+                    drawChart();
+                });
+                SAPO.Dom.Event.observe(SAPO.Dom.Selector.select('#chart-days-form')[0], 'keypress', function(e) { 
+                    if (e.keyCode == 13) {
+                        drawChart();
+                        SAPO.Dom.Event.stop(e);
+                    }
+                });
             });
             {% endautoescape %}
         </script>
@@ -130,6 +138,15 @@
         </header>
 
         <div class="ink-container ink-vspace">
+            <form class="ink-form inline" id="chart-days-form">
+              <fieldset>
+                <div class="control">
+                  <label for="chart-days">Dni wstecz</label>
+                  <input type="text" id="chart-days" value="{{ days }}"/>
+                  <input type="button" class="ink-button info" id="chart-days-button" value="OK"/>
+                </div>
+              <fieldset>
+            </form>
             <div id="chart_div"></div>
         </div>
 
