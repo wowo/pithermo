@@ -37,24 +37,19 @@
 
             function drawChart() 
             {
-                var sensors = '';
                 var checkboxes = SAPO.Dom.Selector.select('tbody input[type="checkbox"]:checked');
                 if (checkboxes.length == 0) {
                     return false;
-                }
-                for (var i = 0; i < checkboxes.length; i++) {
-                    sensors += 'address[]=' + checkboxes[i].getAttribute('data-address') + '&';
                 }
                 SAPO.Dom.Selector.select('#chart_div')[0].innerHTML = '<img alt="loader" src="/pithermo/static/loader.gif"/>';
                 new SAPO.Communication.Ajax('{{ url_for('history') }}', {
                     method: 'get',
                     evalJS: 'force',
-                    parameters: sensors + 'days=' + SAPO.Dom.Selector.select('#chart-days')[0].value,
+                    parameters: 'days=' + SAPO.Dom.Selector.select('#chart-days')[0].value,
                     onSuccess: function(data) {
                         json = data.responseJSON;
                         chartWrapper = new google.visualization.ChartWrapper({
                             chartType: 'LineChart',
-                            dataTable: json,
                             containerId: 'chart_div',
                             options: {
                                 width: '100%',
@@ -63,30 +58,53 @@
                                 legend: {position: 'bottom'}
                             }
                         });
+                        chartWrapper.setDataTable(getDataTable());
                         chartWrapper.draw();
+                        updateMetrics();
 
-                        var sensors = {}
-                        for (var i = 0; i < json.length; i++) {
-                          for (var k = 1; k < json[i].length; k++) {
-                            if (0 == i) {
-                              sensors[json[0][k]] = [];
-                            } else {
-                              sensors[json[0][k]].push(json[i][k])
-                            }
-                          }
-                        }
-                        for (name in sensors) {
-                            var min = Math.min.apply(null, sensors[name]);
-                            var max = Math.max.apply(null, sensors[name]);
-                            var avg = Math.round((sensors[name].reduce(function(a, b) { return a + b }) / sensors[name].length) * 10) / 10;
+                    }
+                });
+            }
 
-                            SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.min')[0].innerText = min + ' °C';
-                            SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.max')[0].innerText = max + ' °C';
-                            SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.avg')[0].innerText = avg + ' °C';
+            function updateMetrics()
+            {
+                var sensors = {}
+                for (var i = 0; i < json.length; i++) {
+                  for (var k = 1; k < json[i].length; k++) {
+                    if (0 == i) {
+                      sensors[json[0][k]] = [];
+                    } else {
+                      sensors[json[0][k]].push(json[i][k])
+                    }
+                  }
+                }
+                for (name in sensors) {
+                    var min = Math.min.apply(null, sensors[name]);
+                    var max = Math.max.apply(null, sensors[name]);
+                    var avg = Math.round((sensors[name].reduce(function(a, b) { return a + b }) / sensors[name].length) * 10) / 10;
+
+                    SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.min')[0].innerText = min + ' °C';
+                    SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.max')[0].innerText = max + ' °C';
+                    SAPO.Dom.Selector.select('td:contains("' + name + '") ~ td.avg')[0].innerText = avg + ' °C';
+                }
+            }
+
+            function getDataTable()
+            {
+                var toHide = SAPO.Dom.Selector.select('#metrics input:not(:checked)');
+                var dataTable = new google.visualization.arrayToDataTable(json);
+                for (var i = 1; i < dataTable.getNumberOfColumns(); i++) {
+                    for (var j = 0; j < toHide.length; j++) {
+                        if (dataTable.getColumnLabel(i) == toHide[j].value) {
+                            dataTable.removeColumn(i);
+                            break;
                         }
                     }
-                })
+                }
+
+                return dataTable;
             }
+
             google.setOnLoadCallback(function () {
                 drawChart();
             });
@@ -95,17 +113,7 @@
                 var checkboxes = SAPO.Dom.Selector.select('input[type="checkbox"]');
                 for (var i = 0; i < checkboxes.length; i++) {
                     SAPO.Dom.Event.observe(checkboxes[i], 'change', function(e) { 
-                        var toHide = SAPO.Dom.Selector.select('#metrics input:not(:checked)');
-                        var dataTable = new google.visualization.arrayToDataTable(json);
-                        for (var i = 1; i < dataTable.getNumberOfColumns(); i++) {
-                            for (var j = 0; j < toHide.length; j++) {
-                                if (dataTable.getColumnLabel(i) == toHide[j].value) {
-                                    dataTable.removeColumn(i);
-                                    break;
-                                }
-                            }
-                        }
-                        chartWrapper.setDataTable(dataTable);
+                        chartWrapper.setDataTable(getDataTable());
                         chartWrapper.draw();
                     });
                 }

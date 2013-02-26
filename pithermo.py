@@ -32,7 +32,7 @@ def history():
 
         documents.append(temperature)
         for address in temperature['sensors']:
-            if address not in headers and address in request.args.getlist('address[]') and 'name' in temperature['sensors'][address]:
+            if address not in headers and 'name' in temperature['sensors'][address]:
                 headers[address] = temperature['sensors'][address]['name']
 
     row = []
