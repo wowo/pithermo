@@ -33,7 +33,7 @@
         <script type="text/javascript" src="https://www.google.com/jsapi"></script>
         <script type="text/javascript">
             {% autoescape false %}
-            google.load('visualization', '1.0', {'packages':['corechart']});
+            google.load('visualization', '1');
 
             function drawChart() 
             {
@@ -43,7 +43,7 @@
                     return false;
                 }
                 for (var i = 0; i < checkboxes.length; i++) {
-                    sensors += 'address[]=' + checkboxes[i].value + '&';
+                    sensors += 'address[]=' + checkboxes[i].getAttribute('data-address') + '&';
                 }
                 SAPO.Dom.Selector.select('#chart_div')[0].innerHTML = '<img alt="loader" src="/pithermo/static/loader.gif"/>';
                 new SAPO.Communication.Ajax('{{ url_for('history') }}', {
@@ -51,11 +51,19 @@
                     evalJS: 'force',
                     parameters: sensors + 'days=' + SAPO.Dom.Selector.select('#chart-days')[0].value,
                     onSuccess: function(data) {
-                        var json = data.responseJSON;
-                        var data = new google.visualization.arrayToDataTable(json);
-                        var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
-                        chart.draw(data, {width:'100%', height: 400, backgroundColor: '#f7f7f7',
-                            legend: {position: 'bottom'}});
+                        json = data.responseJSON;
+                        chartWrapper = new google.visualization.ChartWrapper({
+                            chartType: 'LineChart',
+                            dataTable: json,
+                            containerId: 'chart_div',
+                            options: {
+                                width: '100%',
+                                height: 400,
+                                backgroundColor: '#f7f7f7',
+                                legend: {position: 'bottom'}
+                            }
+                        });
+                        chartWrapper.draw();
 
                         var sensors = {}
                         for (var i = 0; i < json.length; i++) {
@@ -87,7 +95,18 @@
                 var checkboxes = SAPO.Dom.Selector.select('input[type="checkbox"]');
                 for (var i = 0; i < checkboxes.length; i++) {
                     SAPO.Dom.Event.observe(checkboxes[i], 'change', function(e) { 
-                        drawChart();
+                        var toHide = SAPO.Dom.Selector.select('#metrics input:not(:checked)');
+                        var dataTable = new google.visualization.arrayToDataTable(json);
+                        for (var i = 1; i < dataTable.getNumberOfColumns(); i++) {
+                            for (var j = 0; j < toHide.length; j++) {
+                                if (dataTable.getColumnLabel(i) == toHide[j].value) {
+                                    dataTable.removeColumn(i);
+                                    break;
+                                }
+                            }
+                        }
+                        chartWrapper.setDataTable(dataTable);
+                        chartWrapper.draw();
                     });
                 }
                 SAPO.Dom.Event.observe(SAPO.Dom.Selector.select('#chart-days-button')[0], 'click', function(e) { 
@@ -109,7 +128,7 @@
             <div class="ink-vspace">
                 <h1>PiThermo</h1>
                 {% block current %}
-                      <table class="ink-table ink-bordered ink-hover ink-zebra">
+                      <table class="ink-table ink-bordered ink-hover ink-zebra" id="metrics">
                           <thead>
                               <tr>
                                   <th>Sensor</th>
@@ -123,8 +142,8 @@
                           <tbody>
                               {% for address in sensors %}
                                   <tr>
-                                      <td>{{ sensors[address].name }}</td>
-                                      <td><input type="checkbox" value="{{ address }}" checked="checked" /></td>
+                                      <td class="name">{{ sensors[address].name }}</td>
+                                      <td><input type="checkbox" value="{{ sensors[address].name }}" checked="checked" data-address="{{ address }}"/></td>
                                       <td>{% if sensors[address].temperature %}{{ sensors[address].temperature }} °C{% else %}n/a{% endif %}</td>
                                       <td class="avg"></td>
                                       <td class="min"></td>
