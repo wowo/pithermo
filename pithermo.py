@@ -10,6 +10,7 @@ import os
 import pytz
 import re
 import sys
+import urllib
 
 DATE_FORMAT='%H:%M %Y-%m-%d'
 
@@ -49,7 +50,32 @@ def history():
 
         data.append(row)
 
-    return json.dumps(data)
+    return json.dumps(mergeWithForecast(data))
+
+def mergeWithForecast(data):
+    config = getConfig()['forecast']
+    forecast = json.loads(urllib.urlopen('http://newmeteo.sznapka.pl/%d/%d' % (config['rows'], config['cols'])).read())
+    data[0].append(forecast[0][1])
+    length = len(data)
+    for row in forecast[1:]:
+        inserted = False
+        for orig in data[1:length]:
+            delta = (datetime.strptime(orig[0], '%m-%d %H:%M')  - datetime.strptime(row[0], '%m-%d %H:%M'))
+            if len(orig) < len(data[0]) and delta.seconds < (60 * 10 - 1) and delta.days == 0:
+                orig.append(row[1])
+                inserted = True
+                break
+        if not inserted:
+            newRow = [row[0]]
+            for i in range(0, len(data[1]) - 1):
+                newRow.append(None)
+            data.append(newRow +  [row[1]])
+
+    for orig in data[1:]:
+        if len(orig) < len(data[0]):
+            orig.append(None)
+
+    return data
 
 def collect():
     sensors = getConfig()['sensors']
