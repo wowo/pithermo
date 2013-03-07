@@ -75,7 +75,17 @@ def mergeWithForecast(data):
         if len(orig) < len(data[0]):
             orig.append(None)
 
-    return data
+    merged = {}
+    for orig in data[1:]:
+        if orig[0] not in merged:
+            merged[orig[0]] = orig
+
+    headers = data[0]
+    data = merged.values()
+    data = sorted(data, key=lambda data: data[0])
+    data.insert(0, headers)
+
+    return data 
 
 def collect():
     sensors = getConfig()['sensors']
