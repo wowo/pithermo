@@ -67,9 +67,10 @@ def mergeWithForecast(data):
                 break
         if not inserted:
             newRow = [row[0]]
-            for i in range(0, len(data[1]) - 1):
+            for i in range(1, len(data[0]) - 1):
                 newRow.append(None)
-            data.append(newRow +  [row[1]])
+            newRow.append(row[1])
+            data.append(newRow)
 
     for orig in data[1:]:
         if len(orig) < len(data[0]):
