@@ -12,7 +12,7 @@ import re
 import sys
 import urllib
 
-DATE_FORMAT='%H:%M %Y-%m-%d'
+DATE_FORMAT='%m-%d %H:%M'
 
 app = Flask(__name__)
 
@@ -43,7 +43,7 @@ def history():
     data.append(row)
 
     for document in documents:
-        row = [document['date'].strftime('%m-%d %H:%M')]
+        row = [document['date'].strftime(DATE_FORMAT)]
         for key in headers:
             if key != 'date':
                 row.append(document['sensors'][key]['temperature'] if key in document['sensors'] else None)
@@ -60,13 +60,15 @@ def mergeWithForecast(data):
     for row in forecast[1:]:
         inserted = False
         for orig in data[1:length]:
-            delta = (datetime.strptime(orig[0], '%m-%d %H:%M')  - datetime.strptime(row[0], '%m-%d %H:%M'))
+            date = datetime.strptime(row[0], "%Y-%m-%dT%H:%M:%S")
+            origDate = datetime.strptime(str(datetime.now().year) + '-' + orig[0], '%Y-' + DATE_FORMAT)
+            delta = origDate - date
             if len(orig) < len(data[0]) and delta.seconds < (60 * 10 - 1) and delta.days == 0:
                 orig.append(row[1])
                 inserted = True
                 break
         if not inserted:
-            newRow = [row[0]]
+            newRow = [date.strftime(DATE_FORMAT)]
             for i in range(1, len(data[0]) - 1):
                 newRow.append(None)
             newRow.append(row[1])
