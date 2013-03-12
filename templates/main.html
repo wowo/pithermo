@@ -92,7 +92,16 @@
             function getDataTable()
             {
                 var toHide = SAPO.Dom.Selector.select('#metrics input:not(:checked)');
-                var dataTable = new google.visualization.arrayToDataTable(json);
+                var dataTable = new google.visualization.DataTable();
+                dataTable.addColumn('datetime', json[0][0]);
+                for (var i = 1; i < json.length; i++) {
+                    x = json[i][0];
+                    json[i][0] = new Date((new Date()).getFullYear(), x.substring(0,2), x.substring(3,5), x.substring(6,8), x.substring(9,11));
+                }
+                for (var i = 1; i < json[0].length; i++) {
+                    dataTable.addColumn('number', json[0][i]);
+                }
+                dataTable.addRows(json.slice(1));
                 for (var i = 1; i < dataTable.getNumberOfColumns(); i++) {
                     for (var j = 0; j < toHide.length; j++) {
                         if (dataTable.getColumnLabel(i) == toHide[j].value) {
