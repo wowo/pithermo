@@ -109,10 +109,13 @@ def output():
     print yaml.dump(collect(), default_flow_style=False)
 
 def store():
-    getCollection().insert({
+    document = {
         'date': datetime.now(),
         'sensors': collect()
-    })
+    }
+    dthandler = lambda obj: obj.isoformat() if isinstance(obj, datetime) else None
+    print json.dumps(document, default=dthandler)
+    getCollection().insert(document)
 
 def getCollection():
     config = getConfig()['database']
@@ -147,8 +150,8 @@ def getConfig():
 
 if __name__ != 'pithermo': # wsgi
     if __name__ == "__main__" and len(sys.argv) == 1:
-        #app.run(host='0.0.0.0', debug=True)
-        app.run(host='91.227.39.112', port=8000, debug=True)
+        app.run(host='0.0.0.0', port=8000, debug=True)
+        #app.run(host='91.227.39.112', port=8000, debug=True)
     elif sys.argv[1] == '--migrate':
         migrate()
     elif sys.argv[1] == '--output':
