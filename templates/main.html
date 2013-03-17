@@ -97,7 +97,7 @@
                 dataTable.addColumn('datetime', json[0][0]);
                 for (var i = 1; i < json.length; i++) {
                     x = json[i][0];
-                    json[i][0] = new Date((new Date()).getFullYear(), x.substring(0,2), x.substring(3,5), x.substring(6,8), x.substring(9,11));
+                    json[i][0] = new Date((new Date()).getFullYear(), x.substring(0,2) - 1, x.substring(3,5), x.substring(6,8), x.substring(9,11));
                 }
                 for (var i = 1; i < json[0].length; i++) {
                     dataTable.addColumn('number', json[0][i]);
