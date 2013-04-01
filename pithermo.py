@@ -13,6 +13,7 @@ import sys
 import urllib
 
 DATE_FORMAT='%m-%d %H:%M'
+LOG_FILE='failed-inserts.json'
 
 app = Flask(__name__)
 
@@ -109,13 +110,51 @@ def output():
     print yaml.dump(collect(), default_flow_style=False)
 
 def store():
-    document = {
-        'date': datetime.now(),
-        'sensors': collect()
-    }
-    dthandler = lambda obj: obj.isoformat() if isinstance(obj, datetime) else None
-    print json.dumps(document, default=dthandler)
-    getCollection().insert(document)
+    try:
+        document = {
+            'date': datetime.now(),
+            'sensors': collect()
+        }
+        getCollection().insert(document)
+        insertFailed()
+    except:
+        dthandler = lambda obj: obj.isoformat() if isinstance(obj, datetime) else None
+        log = open(LOG_FILE, 'a+')
+        log.write(json.dumps(document, default=dthandler) + "\n")
+        log.close()
+
+def insertFailed():
+    try:
+        log = open(LOG_FILE, 'r')
+    except IOError:
+        print "Nothing to insert from failed inserts log"
+        return
+
+    collection = getCollection()
+    lines = log.readlines()
+    print "Processing %d lines" % len(lines)
+    index = 0
+    for line in lines:
+        try:
+            line = re.sub(r"(datetime.datetime\()(\d+), (\d+), (\d+), (\d+), (\d+), \d+, \d+\)(.*)", r'"\2-\3-\4T\5:\6:00.000000"\7', line)
+            document = json.loads(line)
+            document['date'] = datetime.strptime(document['date'], '%Y-%m-%dT%H:%M:%S.%f')
+            document['date'] = document['date'].replace(second=0, microsecond=0)
+            existing = collection.find_one({'date': {'$gte': document['date'], '$lte': document['date'] + timedelta(0, 60)}})
+            if existing:
+                print "Document with date %s exists, ommiting" % document['date']
+            else: 
+                print "Document with date %s does not exist" % document['date']
+                collection.insert(document)
+
+            index += 1
+            if index % 50 == 0:
+                print "Processed %d lines already (%.2f)" % (index, index / float(len(lines)))
+        except:
+            print line
+            raise
+    log.close()
+    os.remove(LOG_FILE)
 
 def getCollection():
     config = getConfig()['database']
@@ -126,25 +165,6 @@ def getCollection():
 
     return db.temperatures
 
-def migrate():
-    return
-    addresses = {'outdoor': '28-00000476ee01', 'living-room': '28-0000047632af'}
-    db = getCollection()
-    temps = {}
-    for document in db.find({'date': {'$lte': datetime(2013, 2, 17, 18, 00)}, 'sensor': {'$exists': True}, 'sensors': {'$exists': False}}):
-        if document['date'] not in temps:
-            temps[document['date']] = {'date': document['date'], 'sensors': {}}
-
-        print document
-        temps[document['date']]['sensors'][addresses[document['sensor']]] = {
-            'id': document['sensor'],
-            'temperature': document['temperature']
-        }
-        db.remove(document)
-
-    for date in temps:
-        db.insert(temps[date])
-
 def getConfig():
   return yaml.load(file(os.path.dirname(os.path.realpath(__file__)) + '/config.yml'))
 
@@ -152,8 +172,8 @@ if __name__ != 'pithermo': # wsgi
     if __name__ == "__main__" and len(sys.argv) == 1:
         app.run(host='0.0.0.0', port=8000, debug=True)
         #app.run(host='91.227.39.112', port=8000, debug=True)
-    elif sys.argv[1] == '--migrate':
-        migrate()
+    elif sys.argv[1] == '--insert-failed':
+        insertFailed()
     elif sys.argv[1] == '--output':
         output()
     else:
