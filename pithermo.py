@@ -53,6 +53,16 @@ def history():
 
     return json.dumps(mergeWithForecast(data))
 
+@app.route('/sensor/<sensor>')
+def sensor(sensor):
+    sensors = getConfig()['sensors']
+    for address in sensors:
+        if sensor == sensors[address]['id']:
+            return str(collectTemperatureFromSensor(address))
+
+    # not found sensor with given id
+    return 'n/a', 404
+
 def mergeWithForecast(data):
     config = getConfig()['forecast']
     forecast = json.loads(urllib.urlopen('http://newmeteo.sznapka.pl/%d/%d' % (config['rows'], config['cols'])).read())
@@ -93,18 +103,23 @@ def mergeWithForecast(data):
 
 def collect():
     sensors = getConfig()['sensors']
-    command = 'cat /sys/bus/w1/devices/%s/w1_slave | tail -n1 | cut -f2 -d= | awk \'{print $1/1000}\''
     for address in sensors:
-        if os.path.exists('/sys/bus/w1/devices/' + address):
-            temperature = None
-            while temperature is None:
-                sensor = open('/sys/bus/w1/devices/' + address + '/w1_slave', 'r').read().replace("\n", " ")
-                if re.search(r"crc=.* YES", sensor):
-                    match = re.search(r"t=([0-9\-]+)", sensor)
-                    temperature = round(float(match.group(1)) / 1000, 1)
-            sensors[address]['temperature'] = temperature
+        sensors[address]['temperature'] = collectTemperatureFromSensor(address)
 
     return sensors
+
+def collectTemperatureFromSensor(address):
+    if not os.path.exists('/sys/bus/w1/devices/' + address):
+        raise RuntimeException('sensor with %s address does not exists' % address)
+
+    temperature = None
+    while temperature is None:
+        sensor = open('/sys/bus/w1/devices/' + address + '/w1_slave', 'r').read().replace("\n", " ")
+        if re.search(r"crc=.* YES", sensor):
+            match = re.search(r"t=([0-9\-]+)", sensor)
+            temperature = round(float(match.group(1)) / 1000, 1)
+
+    return temperature
 
 def output():
     print yaml.dump(collect(), default_flow_style=False)
