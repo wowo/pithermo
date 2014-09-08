@@ -20,7 +20,11 @@ app = Flask(__name__)
 
 @app.route('/')
 def hello():
-    return render_template('main.html', sensors=collect(), days=request.args.get('days',2))
+    try: 
+        return render_template('main.html', sensors=collect(), days=request.args.get('days',2))
+    except Exception as ex:
+        return '%s occured: %s' % (ex.__class__.__name__, ex)
+
 
 @app.route('/history')
 def history():
@@ -110,7 +114,7 @@ def collect():
 
 def collectTemperatureFromSensor(address):
     if not os.path.exists('/sys/bus/w1/devices/' + address):
-        raise RuntimeException('sensor with %s address does not exists' % address)
+        raise RuntimeError('sensor with %s address does not exists' % address)
 
     temperature = None
     while temperature is None:
@@ -132,7 +136,8 @@ def store():
         }
         getCollection().insert(document)
         insertFailed()
-    except:
+    except Exception as e:
+        print "%s occured with: %s" % (type(e), e)
         dthandler = lambda obj: obj.isoformat() if isinstance(obj, datetime) else None
         log = open(LOG_FILE, 'a+')
         log.write(json.dumps(document, default=dthandler) + "\n")
